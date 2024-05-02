@@ -1,0 +1,1 @@
+##  [WIP] My personal expense tracker telegram bot written in rust using [Teloxide](https://github.com/teloxide/teloxide).
