@@ -1,4 +1,4 @@
-use teloxide::{dispatching::dialogue::InMemStorage, prelude::*};
+pub mod handler;
 
 #[derive(Clone, Default, Debug)]
 pub enum AddPersonDialogueState {
@@ -10,5 +10,3 @@ pub enum AddPersonDialogueState {
         full_name: String,
     },
 }
-
-pub type MyDialogue = Dialogue<AddPersonDialogueState, InMemStorage<AddPersonDialogueState>>;

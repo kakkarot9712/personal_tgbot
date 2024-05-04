@@ -1,22 +1,12 @@
-use serde::{Deserialize, Serialize};
-use std::{fs::OpenOptions, io::{self, Read}};
+use dotenv_codegen::dotenv;
+use mongodb::{error::Error, options::ClientOptions, Client, Database};
+// use std::{fs::OpenOptions, io::{self, Read}};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Person {
-    pub name: String,
-    pub balance: u64,
-    pub id: String
-}
+pub mod collections;
 
-pub enum PullDataError {
-    FileNotFound,
-    FileNotParsed,
-}
-
-pub fn pull_persons_data () -> Result<Vec<Person>, io::Error> {
-    let mut fd = OpenOptions::new().read(true).write(true).open("Persons.json")?;
-    let mut buffer = String::new();
-    fd.read_to_string(&mut buffer).unwrap();
-    let data: Vec<Person> = serde_json::from_str(&buffer)?;
-    Ok(data)
+pub async fn initialize_db() -> Result<Database, Error> {
+    let client_options = ClientOptions::parse(format!("mongodb+srv://{}:{}@{}",dotenv!("DB_USERNAME"), dotenv!("DB_PASSWORD"), dotenv!("DB_ENDPOINT"))).await?;
+    let client = Client::with_options(client_options)?;
+    let db = client.database("tgbot");
+    Ok(db)
 }

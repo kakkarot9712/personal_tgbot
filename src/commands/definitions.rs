@@ -10,8 +10,10 @@ pub enum SimpleCommands {
     Ping,
     #[command(description = "Show Supported Commands")]
     Help,
-    #[command(description = "Get List Of All Persons")]
-    ListPersons,
-    #[command(description = "Add New Person", parse_with = "split")]
+    #[command(description = "Get List Of All Person Dues")]
+    ListDues,
+    #[command(description = "Add New Person")]
     AddPerson,
+    #[command(description = "Add New Transaction")]
+    AddTransaction
 }
