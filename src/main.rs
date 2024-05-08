@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use expensetrackerbot::commands;
 use expensetrackerbot::dialogue::add_transaction::{self, AddTransactionState};
+use expensetrackerbot::{commands, menus};
 use expensetrackerbot::{
     commands::definitions::SimpleCommands,
     db::initialize_db,
@@ -21,7 +21,8 @@ async fn main() {
     let db = Arc::new(initialize_db().await.expect("DB Connection Failed!"));
 
     let bot = Bot::new(dotenv!("BOT_TOKEN"));
-    let handler = Update::filter_message()
+    let handler = dptree::entry()
+    .branch(Update::filter_message()
         .enter_dialogue::<Message, InMemStorage<AddPersonDialogueState>, AddPersonDialogueState>()
         .enter_dialogue::<Message, InMemStorage<AddTransactionState>, AddTransactionState>()
         .branch(
@@ -40,7 +41,8 @@ async fn main() {
         .branch(
             dptree::case![AddTransactionState::AmountAsked { amount }]
                 .endpoint(add_transaction::handler::handle_amount_asked),
-        );
+        ))
+    .branch(Update::filter_callback_query().enter_dialogue::<CallbackQuery, InMemStorage<AddPersonDialogueState>, AddPersonDialogueState>().enter_dialogue::<CallbackQuery, InMemStorage<AddTransactionState>, AddTransactionState>().endpoint(menus::handle_callback));
 
     Dispatcher::builder(bot, handler)
         .enable_ctrlc_handler()
