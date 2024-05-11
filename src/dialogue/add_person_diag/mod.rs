@@ -1,6 +1,6 @@
 pub mod handler;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub enum AddPersonDialogueState {
     #[default]
     Idle,

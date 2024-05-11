@@ -1,12 +1,9 @@
-use std::sync::Arc;
-
-use expensetrackerbot::dialogue::add_transaction::{self, AddTransactionState};
-use expensetrackerbot::{commands, menus};
-use expensetrackerbot::{
-    commands::definitions::SimpleCommands,
-    db::initialize_db,
-    dialogue::add_person_diag::{handler, AddPersonDialogueState},
+use expensetrackerbot::dialogue::add_transaction::{
+    split::AddSplitTransactionState, AddTransactionState,
 };
+use expensetrackerbot::schema::schema;
+use expensetrackerbot::{db::initialize_db, dialogue::add_person_diag::AddPersonDialogueState};
+use std::sync::Arc;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*};
 
 #[macro_use]
@@ -21,34 +18,13 @@ async fn main() {
     let db = Arc::new(initialize_db().await.expect("DB Connection Failed!"));
 
     let bot = Bot::new(dotenv!("BOT_TOKEN"));
-    let handler = dptree::entry()
-    .branch(Update::filter_message()
-        .enter_dialogue::<Message, InMemStorage<AddPersonDialogueState>, AddPersonDialogueState>()
-        .enter_dialogue::<Message, InMemStorage<AddTransactionState>, AddTransactionState>()
-        .branch(
-            dptree::case![AddPersonDialogueState::Idle]
-                .filter_command::<SimpleCommands>()
-                .endpoint(commands::handlers::handle_commands),
-        )
-        .branch(dptree::case![AddPersonDialogueState::ReceiveName].endpoint(handler::handle_name))
-        .branch(
-            dptree::case![AddPersonDialogueState::ReceiveBalance { full_name }]
-                .endpoint(handler::handle_due),
-        )
-        .branch(
-            dptree::case![AddTransactionState::Started].endpoint(add_transaction::handler::start),
-        )
-        .branch(
-            dptree::case![AddTransactionState::AmountAsked { amount }]
-                .endpoint(add_transaction::handler::handle_amount_asked),
-        ))
-    .branch(Update::filter_callback_query().enter_dialogue::<CallbackQuery, InMemStorage<AddPersonDialogueState>, AddPersonDialogueState>().enter_dialogue::<CallbackQuery, InMemStorage<AddTransactionState>, AddTransactionState>().endpoint(menus::handle_callback));
 
-    Dispatcher::builder(bot, handler)
+    Dispatcher::builder(bot, schema())
         .enable_ctrlc_handler()
         .dependencies(dptree::deps![
             InMemStorage::<AddPersonDialogueState>::new(),
             InMemStorage::<AddTransactionState>::new(),
+            InMemStorage::<AddSplitTransactionState>::new(),
             db
         ])
         .build()

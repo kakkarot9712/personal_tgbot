@@ -1,21 +1,22 @@
+pub mod add_transaction;
+
 use std::{fmt, sync::Arc};
 
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
 use teloxide::{
+    prelude::*,
     requests::{Requester, ResponseResult},
     types::{CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message},
     Bot,
 };
 
 use crate::{
-    db::collections::Person,
-    dialogue::{
-        add_person_diag::AddPersonDialogueState,
-        add_transaction::{AddTransactionDialogue, AddTransactionState},
-        MyDialogue,
-    },
+    db::{collections::Person, CollectionHandle},
+    dialogue::{add_person_diag::AddPersonDialogueState, MyDialogue},
 };
+
+use self::add_transaction::AddTransactionType;
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum ExpenseTrackerButtons {
@@ -68,28 +69,12 @@ impl ExpenseTrackerButtons {
         data: String,
         db: Arc<Database>,
         dialogue: MyDialogue,
-        add_transaction_diag: AddTransactionDialogue,
     ) -> ResponseResult<()> {
         if let Some(Message { id, chat, .. }) = q.message {
             if data == ExpenseTrackerButtons::ListDues.to_string() {
                 let mut formatted_msg = String::from("");
-                let col = Person::get_collection_handle(&db);
-                let mut cursor = col.find(None, None).await.unwrap();
-                loop {
-                    match cursor.advance().await {
-                        Ok(r) => {
-                            if !r {
-                                break;
-                            }
-                        }
-                        Err(_) => {
-                            bot.send_message(chat.id, "DB Operation Failed!")
-                                .await
-                                .unwrap();
-                            break;
-                        }
-                    };
-                    let person = cursor.deserialize_current().unwrap();
+                let docs = Person::get_all(&db).await.unwrap();
+                for person in docs.iter() {
                     formatted_msg.push_str(&format!("{} :- {}\n", person.name, person.balance));
                 }
                 bot.answer_callback_query(q.id).await?;
@@ -111,19 +96,17 @@ impl ExpenseTrackerButtons {
                     .update(AddPersonDialogueState::ReceiveName)
                     .await
                     .unwrap();
-                bot.send_message(chat.id, format!("Okay! What is the Full Name of User?"))
+                bot.edit_message_text(chat.id, id, format!("Okay! What is the Full Name of User?"))
                     .await
                     .unwrap();
-                bot.delete_message(chat.id, id).await.unwrap();
             } else if data == ExpenseTrackerButtons::AddTransaction.to_string() {
-                add_transaction_diag
-                    .update(AddTransactionState::Started)
+                bot.edit_message_text(chat.id, id, "Select Split Mode:")
                     .await
                     .unwrap();
-                bot.send_message(chat.id, "Okay! Enter the Amount.")
+                bot.edit_message_reply_markup(chat.id, id)
+                    .reply_markup(AddTransactionType::make_keyboard())
                     .await
                     .unwrap();
-                bot.delete_message(chat.id, id).await.unwrap();
             }
         }
         Ok(())

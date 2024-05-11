@@ -1,5 +1,7 @@
+use std::future::Future;
+
 use dotenv_codegen::dotenv;
-use mongodb::{error::Error, options::ClientOptions, Client, Database};
+use mongodb::{error::Error, options::ClientOptions, Client, Collection, Database};
 // use std::{fs::OpenOptions, io::{self, Read}};
 
 pub mod collections;
@@ -15,4 +17,18 @@ pub async fn initialize_db() -> Result<Database, Error> {
     let client = Client::with_options(client_options)?;
     let db = client.database("tgbot");
     Ok(db)
+}
+
+pub trait DBHandle
+where
+    Self: Sized,
+{
+    fn get_collection_handle(db: &Database) -> Collection<Self>;
+}
+
+pub trait CollectionHandle
+where
+    Self: DBHandle,
+{
+    fn get_all(db: &Database) -> impl Future<Output = Result<Vec<Self>, Error>>;
 }

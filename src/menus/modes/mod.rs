@@ -1,8 +1,7 @@
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use teloxide::{
-    payloads::SendMessageSetters,
+    prelude::*,
     requests::{Requester, ResponseResult},
     types::{CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message},
     Bot,
@@ -14,8 +13,8 @@ use crate::menus::expensetracker::ExpenseTrackerButtons;
 pub enum Modes {
     #[serde(rename = "Manage Expenses")]
     ExpenseTracker,
-    #[serde(rename = "Placeholder")]
-    TestMode,
+    // #[serde(rename = "Add Person Demo")]
+    // TestMode,
 }
 
 impl fmt::Display for Modes {
@@ -28,7 +27,7 @@ impl Modes {
     fn get_available_options() -> Vec<String> {
         vec![
             Modes::ExpenseTracker.to_string(),
-            Modes::TestMode.to_string(),
+            // Modes::TestMode.to_string(),
         ]
     }
 
@@ -54,18 +53,15 @@ impl Modes {
     pub async fn handle_callback(bot: Bot, q: CallbackQuery, data: String) -> ResponseResult<()> {
         bot.answer_callback_query(q.id).await?;
         if let Some(Message { id, chat, .. }) = q.message {
-            // bot.edit_message_text(chat.id, id, format!("Showing Options for {}", data))
-            //     .await
-            //     .unwrap();
             if data == Modes::ExpenseTracker.to_string() {
-                bot.send_message(chat.id,"Options For Expense Tracker are:")
+                bot.edit_message_text(chat.id, id, "Options For Expense Tracker are:")
+                    .await
+                    .unwrap();
+                bot.edit_message_reply_markup(chat.id, id)
                     .reply_markup(ExpenseTrackerButtons::make_keyboard())
                     .await
                     .unwrap();
-            
-            } else if data == Modes::TestMode.to_string() {
             }
-            bot.delete_message(chat.id, id).await.unwrap();
         }
         Ok(())
     }

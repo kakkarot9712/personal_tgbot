@@ -1,7 +1,10 @@
-use std::{num::ParseIntError, sync::Arc};
+use crate::{
+    db::{collections::Person, DBHandle},
+    dialogue::MyDialogue,
+};
 use mongodb::Database;
+use std::{num::ParseIntError, sync::Arc};
 use teloxide::prelude::*;
-use crate::{db::collections::Person, dialogue::MyDialogue};
 
 use super::AddPersonDialogueState;
 
@@ -10,7 +13,7 @@ pub async fn handle_due(
     dialogue: MyDialogue,
     full_name: String,
     msg: Message,
-    db: Arc<Database>
+    db: Arc<Database>,
 ) -> ResponseResult<()> {
     let balance: Result<u64, ParseIntError> = msg.text().unwrap().parse();
     match balance {
@@ -19,13 +22,19 @@ pub async fn handle_due(
                 .await
                 .unwrap();
             let col_handle = Person::get_collection_handle(&db);
-            col_handle.insert_one(Person {name: full_name, balance: num},None).await.unwrap();
-            bot.send_message(
-                msg.chat.id,
-                format!("Insert Success!")
-            )
-            .await
-            .unwrap();
+            col_handle
+                .insert_one(
+                    Person {
+                        name: full_name,
+                        balance: num,
+                    },
+                    None,
+                )
+                .await
+                .unwrap();
+            bot.send_message(msg.chat.id, format!("Insert Success!"))
+                .await
+                .unwrap();
             dialogue.update(AddPersonDialogueState::Idle).await.unwrap();
         }
         Err(_) => {
