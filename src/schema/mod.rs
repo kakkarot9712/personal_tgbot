@@ -64,8 +64,12 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
 
     let callback_query_handler = Update::filter_callback_query()
         .branch(
-            dptree::case![AddSplitTransactionState::NoteAsked { amount, note }]
-                .endpoint(split::handler::handle_callback_query),
+            dptree::case![AddSplitTransactionState::NoteAsked {
+                amount,
+                note,
+                persons
+            }]
+            .endpoint(split::handler::handle_callback_query),
         )
         .branch(dptree::endpoint(menus::handle_callback));
 

@@ -3,7 +3,7 @@ use crate::{
     dialogue::MyDialogue,
 };
 use mongodb::Database;
-use std::{num::ParseIntError, sync::Arc};
+use std::{num::ParseFloatError, sync::Arc};
 use teloxide::prelude::*;
 
 use super::AddPersonDialogueState;
@@ -15,7 +15,7 @@ pub async fn handle_due(
     msg: Message,
     db: Arc<Database>,
 ) -> ResponseResult<()> {
-    let balance: Result<u64, ParseIntError> = msg.text().unwrap().parse();
+    let balance: Result<f64, ParseFloatError> = msg.text().unwrap().parse();
     match balance {
         Ok(num) => {
             bot.send_message(msg.chat.id, "Adding User to DB...")
@@ -25,6 +25,7 @@ pub async fn handle_due(
             col_handle
                 .insert_one(
                     Person {
+                        id: None,
                         name: full_name,
                         balance: num,
                     },

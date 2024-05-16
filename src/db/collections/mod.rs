@@ -1,12 +1,14 @@
-use mongodb::{error::Error, Collection, Database};
+use mongodb::{bson::oid::ObjectId, error::Error, Collection, Database};
 use serde::{Deserialize, Serialize};
 
 use super::{CollectionHandle, DBHandle};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Person {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     pub name: String,
-    pub balance: u64,
+    pub balance: f64,
 }
 
 impl DBHandle for Person {
