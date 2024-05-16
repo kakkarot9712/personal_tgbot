@@ -9,7 +9,7 @@ pub enum AddTransactionState {
     Idle,
     Started,
     AmountAsked {
-        amount: i64,
+        amount: f64,
     },
 }
 

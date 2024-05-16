@@ -1,3 +1,6 @@
+use std::time;
+
+use chrono::{DateTime, Utc};
 use mongodb::{bson::oid::ObjectId, error::Error, Collection, Database};
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +35,7 @@ impl CollectionHandle for Person {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Transaction {
-    pub amount: i64,
+    pub amount: f64,
     pub note: String,
     pub date: String,
 }
@@ -40,5 +43,26 @@ pub struct Transaction {
 impl Transaction {
     pub fn get_collection_handle(db: &Database) -> Collection<Self> {
         db.collection::<Self>("transactions")
+    }
+
+    pub async fn insert_one(
+        amount: f64,
+        note: String,
+        db: &Database,
+    ) -> Result<(), mongodb::error::Error> {
+        let handle = Self::get_collection_handle(db);
+        let date = time::SystemTime::now();
+        let iso_date: DateTime<Utc> = date.into();
+        handle
+            .insert_one(
+                Transaction {
+                    amount,
+                    date: iso_date.to_rfc3339(),
+                    note,
+                },
+                None,
+            )
+            .await?;
+        Ok(())
     }
 }

@@ -1,6 +1,7 @@
 // use chrono::prelude::{DateTime, Utc};
 use std::{num::ParseIntError, sync::Arc};
 
+use dotenv_codegen::dotenv;
 use mongodb::{bson::doc, Database};
 use teloxide::{
     prelude::*,
@@ -9,7 +10,10 @@ use teloxide::{
     Bot,
 };
 
-use crate::db::{collections::Person, CollectionHandle, DBHandle};
+use crate::db::{
+    collections::{Person, Transaction},
+    CollectionHandle, DBHandle,
+};
 
 use super::{AddSplitTransactionDialogue, AddSplitTransactionState};
 
@@ -76,38 +80,6 @@ pub async fn handle_amount_asked(
     Ok(())
 }
 
-// pub async fn handle_note_asked(
-//     bot: Bot,
-//     msg: Message,
-//     add_transaction_diag: AddSplitTransactionDialogue,
-//     amount: i64,
-//     note: String,
-//     db: Arc<Database>,
-// ) -> ResponseResult<()> {
-//     // Do Some Calculations
-//     let date = time::SystemTime::now();
-//     let iso_date: DateTime<Utc> = date.into();
-//     let col = Transaction::get_collection_handle(&db);
-//     col.insert_one(
-//         Transaction {
-//             amount,
-//             note,
-//             date: iso_date.to_rfc3339(),
-//         },
-//         None,
-//     )
-//     .await
-//     .unwrap();
-//     bot.send_message(msg.chat.id, "Inserted Successfully!")
-//         .await
-//         .unwrap();
-//     add_transaction_diag
-//         .update(AddSplitTransactionState::Idle)
-//         .await
-//         .unwrap();
-//     Ok(())
-// }
-
 pub async fn handle_callback_query(
     bot: Bot,
     q: CallbackQuery,
@@ -135,6 +107,7 @@ pub async fn handle_callback_query(
                     .unwrap();
                 let split_amount = amount as f64 / added_persons.len() as f64;
                 let handle = Person::get_collection_handle(&db);
+                let my_id = dotenv!("MYID");
                 for p in added_persons.iter() {
                     let filter = doc! { "_id": p.id.unwrap() };
                     let update = doc! { "$set": doc!{"balance": p.balance as f64 + split_amount }};
@@ -142,12 +115,17 @@ pub async fn handle_callback_query(
                         .find_one_and_update(filter, update, None)
                         .await
                         .unwrap();
+                    if p.id.unwrap().to_string() == my_id {
+                        Transaction::insert_one(split_amount, note.clone(), &db)
+                            .await
+                            .unwrap();
+                    }
                 }
-                bot.edit_message_text(chat.id, message.id, "Success!")
-                    .await
-                    .unwrap();
                 add_transaction_diag
                     .update(AddSplitTransactionState::Idle)
+                    .await
+                    .unwrap();
+                bot.edit_message_text(chat.id, message.id, "Success!")
                     .await
                     .unwrap();
             } else if added_persons
@@ -171,15 +149,16 @@ pub async fn handle_callback_query(
                     .unwrap();
                 added_persons.push(selected_person.unwrap().to_owned());
             }
-
-            add_transaction_diag
-                .update(AddSplitTransactionState::NoteAsked {
-                    amount,
-                    note,
-                    persons: Some(added_persons),
-                })
-                .await
-                .unwrap();
+            if msg != "####done####" {
+                add_transaction_diag
+                    .update(AddSplitTransactionState::NoteAsked {
+                        amount,
+                        note,
+                        persons: Some(added_persons),
+                    })
+                    .await
+                    .unwrap();
+            }
         }
     }
     Ok(())
