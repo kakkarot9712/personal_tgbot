@@ -1,16 +1,13 @@
-use crate::{
-    db::{collections::Person, DBHandle},
-    dialogue::MyDialogue,
-};
+use crate::database::{schema::Person, traits::DBHandle};
 use mongodb::Database;
 use std::{num::ParseFloatError, sync::Arc};
 use teloxide::prelude::*;
 
-use super::AddPersonDialogueState;
+use super::{State, DialogueWithState};
 
 pub async fn handle_due(
     bot: Bot,
-    dialogue: MyDialogue,
+    dialogue: DialogueWithState,
     full_name: String,
     msg: Message,
     db: Arc<Database>,
@@ -36,7 +33,7 @@ pub async fn handle_due(
             bot.send_message(msg.chat.id, format!("Insert Success!"))
                 .await
                 .unwrap();
-            dialogue.update(AddPersonDialogueState::Idle).await.unwrap();
+            dialogue.update(State::Idle).await.unwrap();
         }
         Err(_) => {
             bot.send_message(msg.chat.id, "Please send positive Number!")
@@ -47,10 +44,10 @@ pub async fn handle_due(
     Ok(())
 }
 
-pub async fn handle_name(bot: Bot, dialogue: MyDialogue, msg: Message) -> ResponseResult<()> {
+pub async fn handle_name(bot: Bot, dialogue: DialogueWithState, msg: Message) -> ResponseResult<()> {
     let full_name = msg.text().unwrap().to_string();
     dialogue
-        .update(AddPersonDialogueState::ReceiveBalance { full_name })
+        .update(State::ReceiveBalance { full_name })
         .await
         .unwrap();
     bot.send_message(msg.chat.id, "What's Current Due of User?")

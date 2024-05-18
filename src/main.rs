@@ -1,8 +1,8 @@
-use expensetrackerbot::dialogue::add_transaction::{
-    split::AddSplitTransactionState, AddTransactionState,
+use tgbot::dialogue::add_transaction_diag::{
+    split, self,
 };
-use expensetrackerbot::schema::schema;
-use expensetrackerbot::{db::initialize_db, dialogue::add_person_diag::AddPersonDialogueState};
+use tgbot::schema::schema;
+use tgbot::{database::initialize_db, dialogue::add_person_diag};
 use std::sync::Arc;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*};
 
@@ -22,9 +22,9 @@ async fn main() {
     Dispatcher::builder(bot, schema())
         .enable_ctrlc_handler()
         .dependencies(dptree::deps![
-            InMemStorage::<AddPersonDialogueState>::new(),
-            InMemStorage::<AddTransactionState>::new(),
-            InMemStorage::<AddSplitTransactionState>::new(),
+            InMemStorage::<add_person_diag::State>::new(),
+            InMemStorage::<add_transaction_diag::State>::new(),
+            InMemStorage::<split::State>::new(),
             db
         ])
         .build()

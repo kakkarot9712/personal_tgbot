@@ -1,29 +1,23 @@
-use teloxide::{macros::BotCommands, prelude::*, requests::ResponseResult, types::Message, Bot};
+use teloxide::{prelude::*, requests::ResponseResult, types::Message, Bot};
 
 use crate::dialogue::{
-    add_person_diag::AddPersonDialogueState,
-    add_transaction::{
-        split::{AddSplitTransactionDialogue, AddSplitTransactionState},
-        AddTransactionDialogue, AddTransactionState,
+    add_person_diag,
+    add_transaction_diag::{
+        split,
+        self
     },
-    MyDialogue,
 };
 
-#[derive(BotCommands, Debug, Clone)]
-#[command(rename_rule = "lowercase")]
-pub enum HiddenCommands {
-    Start,
-    Cancel,
-}
+use super::types::HiddenCommands;
 
 impl HiddenCommands {
     pub async fn handle_commands(
         bot: Bot,
         msg: Message,
         cmd: HiddenCommands,
-        add_person_diag: MyDialogue,
-        add_transaction_diag: AddTransactionDialogue,
-        add_transaction_split_diag: AddSplitTransactionDialogue,
+        add_person_diag: add_person_diag::DialogueWithState,
+        add_transaction_diag: add_transaction_diag::DialogueWithState,
+        add_transaction_split_diag: split::DialogueWithState,
     ) -> ResponseResult<()> {
         match cmd {
             Self::Start => {
@@ -35,9 +29,9 @@ impl HiddenCommands {
                 let add_trasaction_diag_state = add_transaction_diag.get().await.unwrap().unwrap();
                 let add_transaction_split_diag_state =
                     add_transaction_split_diag.get().await.unwrap().unwrap();
-                if add_person_state != AddPersonDialogueState::Idle {
+                if add_person_state != add_person_diag::State::Idle {
                     add_person_diag
-                        .update(AddPersonDialogueState::Idle)
+                        .update(add_person_diag::State::Idle)
                         .await
                         .unwrap();
 
@@ -45,9 +39,9 @@ impl HiddenCommands {
                         .await
                         .unwrap();
                 }
-                if add_trasaction_diag_state != AddTransactionState::Idle {
+                if add_trasaction_diag_state != add_transaction_diag::State::Idle {
                     add_transaction_diag
-                        .update(AddTransactionState::Idle)
+                        .update(add_transaction_diag::State::Idle)
                         .await
                         .unwrap();
 
@@ -55,9 +49,9 @@ impl HiddenCommands {
                         .await
                         .unwrap();
                 }
-                if add_transaction_split_diag_state != AddSplitTransactionState::Idle {
+                if add_transaction_split_diag_state != split::State::Idle {
                     add_transaction_split_diag
-                        .update(AddSplitTransactionState::Idle)
+                        .update(split::State::Idle)
                         .await
                         .unwrap();
 

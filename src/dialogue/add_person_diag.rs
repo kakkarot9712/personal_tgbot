@@ -1,7 +1,8 @@
 pub mod handler;
+use teloxide::dispatching::dialogue::{Dialogue, InMemStorage};
 
 #[derive(Clone, Default, Debug, PartialEq)]
-pub enum AddPersonDialogueState {
+pub enum State {
     #[default]
     Idle,
     Start,
@@ -10,3 +11,5 @@ pub enum AddPersonDialogueState {
         full_name: String,
     },
 }
+
+pub type DialogueWithState = Dialogue<State, InMemStorage<State>>;

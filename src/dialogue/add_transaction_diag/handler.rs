@@ -10,17 +10,17 @@ use teloxide::{
     Bot,
 };
 
-use crate::db::{
-    collections::Transaction,
+use crate::database::{
+    schema::Transaction,
     // DBHandle,
 };
 
-use super::{AddTransactionDialogue, AddTransactionState};
+use super::{DialogueWithState, State};
 
 pub async fn start(
     bot: Bot,
     msg: Message,
-    add_transaction_diag: AddTransactionDialogue,
+    add_transaction_diag: DialogueWithState,
 ) -> ResponseResult<()> {
     let parsed_amt: Result<f64, ParseFloatError> = msg.text().unwrap().parse();
     match parsed_amt {
@@ -29,7 +29,7 @@ pub async fn start(
                 .await
                 .unwrap();
             add_transaction_diag
-                .update(AddTransactionState::AmountAsked { amount: amt })
+                .update(State::AmountAsked { amount: amt })
                 .await
                 .unwrap();
         }
@@ -45,7 +45,7 @@ pub async fn start(
 pub async fn handle_amount_asked(
     bot: Bot,
     msg: Message,
-    add_transaction_diag: AddTransactionDialogue,
+    add_transaction_diag: DialogueWithState,
     amount: f64,
     db: Arc<Database>,
 ) -> ResponseResult<()> {
@@ -60,7 +60,7 @@ pub async fn handle_amount_asked(
         .await
         .unwrap();
     add_transaction_diag
-        .update(AddTransactionState::Idle)
+        .update(State::Idle)
         .await
         .unwrap();
     Ok(())

@@ -4,7 +4,7 @@ pub mod handler;
 pub mod split;
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub enum AddTransactionState {
+pub enum State {
     #[default]
     Idle,
     Started,
@@ -13,4 +13,4 @@ pub enum AddTransactionState {
     },
 }
 
-pub type AddTransactionDialogue = Dialogue<AddTransactionState, InMemStorage<AddTransactionState>>;
+pub type DialogueWithState = Dialogue<State, InMemStorage<State>>;

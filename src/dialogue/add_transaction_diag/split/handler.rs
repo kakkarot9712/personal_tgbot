@@ -10,17 +10,17 @@ use teloxide::{
     Bot,
 };
 
-use crate::db::{
-    collections::{Person, Transaction},
-    CollectionHandle, DBHandle,
+use crate::database::{
+    schema::{Person, Transaction},
+    traits::{CollectionHandle, DBHandle},
 };
 
-use super::{AddSplitTransactionDialogue, AddSplitTransactionState};
+use super::{DialogueWithState, State};
 
 pub async fn start(
     bot: Bot,
     msg: Message,
-    add_transaction_diag: AddSplitTransactionDialogue,
+    add_transaction_diag: DialogueWithState,
 ) -> ResponseResult<()> {
     let parsed_amt: Result<i64, ParseIntError> = msg.text().unwrap().parse();
     match parsed_amt {
@@ -29,7 +29,7 @@ pub async fn start(
                 .await
                 .unwrap();
             add_transaction_diag
-                .update(AddSplitTransactionState::AmountAsked { amount: amt })
+                .update(State::AmountAsked { amount: amt })
                 .await
                 .unwrap();
         }
@@ -45,7 +45,7 @@ pub async fn start(
 pub async fn handle_amount_asked(
     bot: Bot,
     msg: Message,
-    add_transaction_diag: AddSplitTransactionDialogue,
+    add_transaction_diag: DialogueWithState,
     amount: i64,
     db: Arc<Database>,
 ) -> ResponseResult<()> {
@@ -70,7 +70,7 @@ pub async fn handle_amount_asked(
         .await
         .unwrap();
     add_transaction_diag
-        .update(AddSplitTransactionState::NoteAsked {
+        .update(State::NoteAsked {
             amount,
             note,
             persons: None,
@@ -83,13 +83,13 @@ pub async fn handle_amount_asked(
 pub async fn handle_callback_query(
     bot: Bot,
     q: CallbackQuery,
-    add_transaction_diag: AddSplitTransactionDialogue,
+    add_transaction_diag: DialogueWithState,
     db: Arc<Database>,
 ) -> ResponseResult<()> {
     bot.answer_callback_query(q.id).await.unwrap();
     if let Some(Message { id, chat, .. }) = q.message {
-        let state: AddSplitTransactionState = add_transaction_diag.get().await.unwrap().unwrap();
-        if let AddSplitTransactionState::NoteAsked {
+        let state: State = add_transaction_diag.get().await.unwrap().unwrap();
+        if let State::NoteAsked {
             amount,
             note,
             persons,
@@ -109,8 +109,10 @@ pub async fn handle_callback_query(
                 let handle = Person::get_collection_handle(&db);
                 let my_id = dotenv!("MYID");
                 for p in added_persons.iter() {
+                    let balance = p.balance as f64 + split_amount;
+                    let balance = f64::trunc(balance * 100.0) / 100.0;
                     let filter = doc! { "_id": p.id.unwrap() };
-                    let update = doc! { "$set": doc!{"balance": p.balance as f64 + split_amount }};
+                    let update = doc! { "$set": doc!{"balance": balance }};
                     handle
                         .find_one_and_update(filter, update, None)
                         .await
@@ -121,10 +123,7 @@ pub async fn handle_callback_query(
                             .unwrap();
                     }
                 }
-                add_transaction_diag
-                    .update(AddSplitTransactionState::Idle)
-                    .await
-                    .unwrap();
+                add_transaction_diag.update(State::Idle).await.unwrap();
                 bot.edit_message_text(chat.id, message.id, "Success!")
                     .await
                     .unwrap();
@@ -151,7 +150,7 @@ pub async fn handle_callback_query(
             }
             if msg != "####done####" {
                 add_transaction_diag
-                    .update(AddSplitTransactionState::NoteAsked {
+                    .update(State::NoteAsked {
                         amount,
                         note,
                         persons: Some(added_persons),
