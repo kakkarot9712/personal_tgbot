@@ -6,13 +6,13 @@ use mongodb::{bson::doc, Database};
 use teloxide::{
     prelude::*,
     requests::{Requester, ResponseResult},
-    types::{InlineKeyboardButton, InlineKeyboardMarkup, Message},
+    types::Message,
     Bot,
 };
 
 use crate::database::{
     schema::{Person, Transaction},
-    traits::{CollectionHandle, DBHandle},
+    traits::{CollectionHelpers, DBHandle},
 };
 
 use super::{DialogueWithState, State};
@@ -50,23 +50,9 @@ pub async fn handle_amount_asked(
     db: Arc<Database>,
 ) -> ResponseResult<()> {
     let note = msg.text().unwrap().to_owned();
-    let persons = Person::get_all(&db).await.unwrap();
-    let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![];
-    for chunk in persons.chunks(2) {
-        let row = chunk
-            .iter()
-            .map(|p| InlineKeyboardButton::callback(p.name.clone(), p.id.unwrap().to_string()))
-            .collect();
-
-        keyboard.push(row);
-    }
-    keyboard.push(vec![InlineKeyboardButton::callback(
-        "Complete Selection",
-        "####done####",
-    )]);
-
+    let keyboard = Person::make_keyboard(db, true).await;
     bot.send_message(msg.chat.id, "Select The Persons:")
-        .reply_markup(InlineKeyboardMarkup::new(keyboard))
+        .reply_markup(keyboard)
         .await
         .unwrap();
     add_transaction_diag

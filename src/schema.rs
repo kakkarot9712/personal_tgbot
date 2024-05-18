@@ -1,10 +1,7 @@
 use crate::{
     callback_query,
     commands::{self, types::*},
-    dialogue::{
-        add_person_diag,
-        add_transaction_diag::{self, split},
-    },
+    dialogue::{add_person_diag, add_transaction_diag::split, settle_due},
 };
 use teloxide::{
     dispatching::{dialogue::InMemStorage, DpHandlerDescription, HandlerExt, UpdateFilterExt},
@@ -40,21 +37,14 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
             dptree::case![add_person_diag::State::ReceiveBalance { full_name }]
                 .endpoint(add_person_diag::handler::handle_due),
         )
-        .branch(
-            dptree::case![add_transaction_diag::State::Started]
-                .endpoint(add_transaction_diag::handler::start),
-        )
-        .branch(
-            dptree::case![add_transaction_diag::State::AmountAsked { amount }]
-                .endpoint(add_transaction_diag::handler::handle_amount_asked),
-        )
-        .branch(
-            dptree::case![split::State::Started]
-                .endpoint(add_transaction_diag::split::handler::start),
-        )
+        .branch(dptree::case![split::State::Started].endpoint(split::handler::start))
         .branch(
             dptree::case![split::State::AmountAsked { amount }]
-                .endpoint(add_transaction_diag::split::handler::handle_amount_asked),
+                .endpoint(split::handler::handle_amount_asked),
+        )
+        .branch(
+            dptree::case![settle_due::State::AmountAsked { person }]
+                .endpoint(settle_due::handler::handle_amount_asked),
         );
 
     let message_handler = Update::filter_message()
@@ -71,13 +61,16 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
             }]
             .endpoint(split::handler::handle_callback_query),
         )
+        .branch(
+            dptree::case![settle_due::State::PersonAsked]
+                .endpoint(settle_due::handler::handle_person_asked),
+        )
         .branch(dptree::endpoint(callback_query::handle_callback));
 
     dptree::entry()
         .enter_dialogue::<Update, InMemStorage<add_person_diag::State>, add_person_diag::State>()
-        .enter_dialogue::<Update, InMemStorage<add_transaction_diag::State>, add_transaction_diag::State>()
-        .enter_dialogue::<Update, InMemStorage<split::State>, split::State>(
-        )
+        .enter_dialogue::<Update, InMemStorage<split::State>, split::State>()
+        .enter_dialogue::<Update, InMemStorage<settle_due::State>, settle_due::State>()
         .branch(message_handler)
         .branch(callback_query_handler)
 }

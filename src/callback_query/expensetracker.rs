@@ -1,10 +1,7 @@
-pub mod add_transaction;
 pub mod layout;
 
-use std::sync::Arc;
-
-use super::traits::KeyboardGenerator;
 use layout::ButtonLayout;
+use std::sync::Arc;
 
 use mongodb::Database;
 use teloxide::{
@@ -15,8 +12,8 @@ use teloxide::{
 };
 
 use crate::{
-    database::{schema::Person, traits::CollectionHandle},
-    dialogue::add_person_diag,
+    database::{schema::Person, traits::CollectionHelpers},
+    dialogue::{add_person_diag, add_transaction_diag::split, settle_due},
 };
 
 impl ButtonLayout {
@@ -26,6 +23,8 @@ impl ButtonLayout {
         data: String,
         db: Arc<Database>,
         dialogue: add_person_diag::DialogueWithState,
+        add_split_transaction_diag: split::DialogueWithState,
+        settle_due_diag: settle_due::DialogueWithState,
     ) -> ResponseResult<()> {
         if let Some(Message { id, chat, .. }) = q.message {
             if data == ButtonLayout::ListDues.to_string() {
@@ -57,11 +56,28 @@ impl ButtonLayout {
                     .await
                     .unwrap();
             } else if data == ButtonLayout::AddTransaction.to_string() {
-                bot.edit_message_text(chat.id, id, "Select Split Mode:")
+                // bot.edit_message_text(chat.id, id, "Select Split Mode:")
+                //     .await
+                //     .unwrap();
+                // bot.edit_message_reply_markup(chat.id, id)
+                //     .reply_markup(add_transaction::layout::ButtonLayout::make_keyboard())
+                //     .await
+                //     .unwrap();
+                add_split_transaction_diag
+                    .update(split::State::Started)
                     .await
                     .unwrap();
-                bot.edit_message_reply_markup(chat.id, id)
-                    .reply_markup(add_transaction::layout::ButtonLayout::make_keyboard())
+                bot.edit_message_text(chat.id, id, "Okay! Enter the Amount.")
+                    .await
+                    .unwrap();
+            } else if data == ButtonLayout::SettleDues.to_string() {
+                let keyboard = Person::make_keyboard(db, false).await;
+                settle_due_diag
+                    .update(settle_due::State::PersonAsked)
+                    .await
+                    .unwrap();
+                bot.edit_message_text(chat.id, id, "Okay Select The Person:")
+                    .reply_markup(keyboard)
                     .await
                     .unwrap();
             }

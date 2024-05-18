@@ -2,13 +2,17 @@ use std::fmt;
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::callback_query::traits::{KeyboardGenerator, QueryOptions};
+use crate::callback_query::{
+    traits::{GetAllOptions, KeyboardGenerator},
+    HasQuery,
+};
 
 #[derive(Clone, Copy)]
 pub enum ButtonLayout {
     ListDues,
     AddPerson,
     AddTransaction,
+    SettleDues,
 }
 
 impl fmt::Display for ButtonLayout {
@@ -16,21 +20,25 @@ impl fmt::Display for ButtonLayout {
         let name = match self {
             Self::ListDues => "List all Dues",
             Self::AddPerson => "Add a Peson",
-            Self::AddTransaction => "Add a Transaction"
+            Self::AddTransaction => "Add a Transaction",
+            Self::SettleDues => "Settle Dues",
         };
         write!(f, "{}", name)
     }
 }
 
-impl QueryOptions for ButtonLayout {
+impl GetAllOptions for ButtonLayout {
     fn get_available_options() -> Vec<String> {
         vec![
             Self::ListDues.to_string(),
             Self::AddPerson.to_string(),
             Self::AddTransaction.to_string(),
+            Self::SettleDues.to_string(),
         ]
     }
+}
 
+impl HasQuery for ButtonLayout {
     fn has_query(q: &String) -> bool {
         let available_modes = Self::get_available_options();
         available_modes.contains(q)
