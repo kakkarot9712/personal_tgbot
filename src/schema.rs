@@ -3,14 +3,44 @@ use crate::{
     commands::{self, types::*},
     dialogue::{add_person_diag, add_transaction_diag::split, settle_due},
 };
+use dotenv_codegen::dotenv;
 use teloxide::{
     dispatching::{dialogue::InMemStorage, DpHandlerDescription, HandlerExt, UpdateFilterExt},
     dptree::{self, di::DependencyMap, Handler},
-    types::Update,
-    RequestError,
+    prelude::*,
+    requests::ResponseResult,
+    types::{Message, Update},
+    Bot, RequestError,
 };
 
-// use dptree
+fn only_me(msg: Message) -> bool {
+    let my_id = dotenv!("MYID");
+    let sender = msg.from();
+    match sender {
+        Some(u) => u.id.to_string() == my_id.to_string(),
+        None => false,
+    }
+}
+
+async fn not_allowed(bot: Bot, msg: Message) -> ResponseResult<()> {
+    bot.send_message(msg.chat.id, "Only owner can use this bot as of now. If you want to use bot, kindly goto Github profile and follow deployment steps").await.unwrap();
+    Ok(())
+}
+
+async fn cb_not_allowed(cb: CallbackQuery, bot: Bot) -> ResponseResult<()> {
+    if let Some(msg) = cb.message {
+        not_allowed(bot, msg).await.unwrap();
+    }
+    Ok(())
+}
+
+fn cb_only_me(cb: CallbackQuery) -> bool {
+    if let Some(msg) = cb.message {
+        let is_me = only_me(msg);
+        return is_me;
+    }
+    false
+}
 
 pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpHandlerDescription> {
     let command_handler = teloxide::filter_command::<SimpleCommands, _>().branch(
@@ -48,24 +78,32 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
         );
 
     let message_handler = Update::filter_message()
-        .branch(command_handler)
-        .branch(dialogue_handler)
-        .branch(hidden_command_handler);
+        .branch(
+            dptree::filter(only_me)
+                .branch(command_handler)
+                .branch(dialogue_handler)
+                .branch(hidden_command_handler),
+        )
+        .endpoint(not_allowed);
 
     let callback_query_handler = Update::filter_callback_query()
         .branch(
-            dptree::case![split::State::NoteAsked {
-                amount,
-                note,
-                persons
-            }]
-            .endpoint(split::handler::handle_callback_query),
+            dptree::filter(cb_only_me)
+                .branch(
+                    dptree::case![split::State::NoteAsked {
+                        amount,
+                        note,
+                        persons
+                    }]
+                    .endpoint(split::handler::handle_callback_query),
+                )
+                .branch(
+                    dptree::case![settle_due::State::PersonAsked]
+                        .endpoint(settle_due::handler::handle_person_asked),
+                )
+                .branch(dptree::endpoint(callback_query::handle_callback)),
         )
-        .branch(
-            dptree::case![settle_due::State::PersonAsked]
-                .endpoint(settle_due::handler::handle_person_asked),
-        )
-        .branch(dptree::endpoint(callback_query::handle_callback));
+        .endpoint(cb_not_allowed);
 
     dptree::entry()
         .enter_dialogue::<Update, InMemStorage<add_person_diag::State>, add_person_diag::State>()
