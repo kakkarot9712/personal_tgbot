@@ -17,3 +17,11 @@ pub struct Transaction {
     pub note: String,
     pub date: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct User {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
+    pub chat_id: String,
+    pub user_id: String,
+}

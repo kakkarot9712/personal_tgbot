@@ -3,7 +3,7 @@ use std::sync::Arc;
 use mongodb::Database;
 use teloxide::{requests::ResponseResult, types::CallbackQuery, Bot};
 
-use crate::dialogue::{add_person_diag, add_transaction_diag::split, settle_due};
+use crate::dialogue::state::DialogueWithState;
 
 use traits::*;
 
@@ -16,9 +16,7 @@ pub mod traits;
 pub async fn handle_callback(
     bot: Bot,
     q: CallbackQuery,
-    dialogue: add_person_diag::DialogueWithState,
-    add_transaction_split_diag: split::DialogueWithState,
-    settle_due_diag: settle_due::DialogueWithState,
+    dialogue: DialogueWithState,
     db: Arc<Database>,
 ) -> ResponseResult<()> {
     if let Some(data) = q.data.clone() {
@@ -31,8 +29,6 @@ pub async fn handle_callback(
                 data,
                 db,
                 dialogue,
-                add_transaction_split_diag,
-                settle_due_diag,
             )
             .await
             .unwrap();

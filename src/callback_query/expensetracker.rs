@@ -13,7 +13,7 @@ use teloxide::{
 
 use crate::{
     database::{schema::Person, traits::CollectionHelpers},
-    dialogue::{add_person_diag, add_transaction_diag::split, settle_due},
+    dialogue::state::{DialogueWithState, State},
 };
 
 impl ButtonLayout {
@@ -22,9 +22,7 @@ impl ButtonLayout {
         q: CallbackQuery,
         data: String,
         db: Arc<Database>,
-        dialogue: add_person_diag::DialogueWithState,
-        add_split_transaction_diag: split::DialogueWithState,
-        settle_due_diag: settle_due::DialogueWithState,
+        dialogue: DialogueWithState,
     ) -> ResponseResult<()> {
         if let Some(Message { id, chat, .. }) = q.message {
             if data == ButtonLayout::ListDues.to_string() {
@@ -49,7 +47,7 @@ impl ButtonLayout {
                 }
             } else if data == ButtonLayout::AddPerson.to_string() {
                 dialogue
-                    .update(add_person_diag::State::ReceiveName)
+                    .update(State::PReceiveName)
                     .await
                     .unwrap();
                 bot.edit_message_text(chat.id, id, format!("Okay! What is the Full Name of User?"))
@@ -63,19 +61,13 @@ impl ButtonLayout {
                 //     .reply_markup(add_transaction::layout::ButtonLayout::make_keyboard())
                 //     .await
                 //     .unwrap();
-                add_split_transaction_diag
-                    .update(split::State::Started)
-                    .await
-                    .unwrap();
+                dialogue.update(State::TStarted).await.unwrap();
                 bot.edit_message_text(chat.id, id, "Okay! Enter the Amount.")
                     .await
                     .unwrap();
             } else if data == ButtonLayout::SettleDues.to_string() {
                 let keyboard = Person::make_keyboard(db, false).await;
-                settle_due_diag
-                    .update(settle_due::State::PersonAsked)
-                    .await
-                    .unwrap();
+                dialogue.update(State::SDPersonAsked).await.unwrap();
                 bot.edit_message_text(chat.id, id, "Okay Select The Person:")
                     .reply_markup(keyboard)
                     .await

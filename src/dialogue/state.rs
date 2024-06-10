@@ -4,17 +4,28 @@ use teloxide::dispatching::dialogue::{Dialogue, InMemStorage};
 
 use crate::database::schema::Person;
 
-pub mod handler;
-
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub enum State {
+    // add_person
     #[default]
     Idle,
-    Started,
-    AmountAsked {
+    PStart,
+    PReceiveName,
+    PReceiveBalance {
+        full_name: String,
+    },
+    // Settle_due
+    SDPersonAsked,
+    SDAmountAsked {
+        person: Person,
+    },
+
+    // add-transaction_split
+    TStarted,
+    TAmountAsked {
         amount: i64,
     },
-    NoteAsked {
+    TNoteAsked {
         amount: i64,
         note: String,
         persons: Option<Vec<Person>>,
@@ -25,14 +36,19 @@ impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name: Option<&str>;
         match self {
-            State::AmountAsked { amount: _ } => name = Some("AmountAsked"),
+            State::TAmountAsked { amount: _ } => name = Some("T_AmountAsked"),
             State::Idle => name = Some("idle"),
-            State::NoteAsked {
+            State::TNoteAsked {
                 amount: _,
                 note: _,
                 persons: _,
-            } => name = Some("NoteAsked"),
-            State::Started => name = Some("Started"),
+            } => name = Some("T_NoteAsked"),
+            State::TStarted => name = Some("T_Started"),
+            State::PStart => name = Some("P_Start"),
+            State::PReceiveName => name = Some("P_ReceiveName"),
+            State::PReceiveBalance {full_name: _}  => name = Some("P_ReceiveBalance"),
+            State::SDPersonAsked => name = Some("SD_PersonAsked"),
+            State::SDAmountAsked { person:_ } => name = Some("SD_AmountAsked")
         }
         write!(f, "{}", name.unwrap())
     }
