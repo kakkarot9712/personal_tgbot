@@ -22,6 +22,7 @@ pub async fn handle_person_asked(
     if let Some(Message { id, chat, .. }) = q.message {
         let person = Person::find_by_id(&data, &db).await.unwrap().unwrap();
         let name = person.name.clone();
+        let balance = person.balance.clone();
         dialogue
             .update(State::SDAmountAsked { person })
             .await
@@ -30,7 +31,11 @@ pub async fn handle_person_asked(
         bot.edit_message_text(
             chat.id,
             id,
-            format!("Selected Person: {}\n\nEnter Amount To Settle", name),
+            format!(
+                "Selected Person: {}\n\n Current Due: {}\n\nEnter Amount To Settle \n(To Settle all due send 0)",
+                name,
+                (balance * 100.0).round() / 100.0
+            ),
         )
         .await
         .unwrap();
@@ -50,7 +55,7 @@ pub async fn handle_amount_asked(
     let Message { chat, .. } = msg;
     match settle_balance {
         Ok(b) => {
-            if b > person.balance || b < 0.0 {
+            if b > person.balance || b <= 0.0 {
                 bot.send_message(
                     chat.id,
                     "Settlement Value cannot be more then Due itself or less then 0",
@@ -59,7 +64,11 @@ pub async fn handle_amount_asked(
                 .unwrap();
             } else {
                 let message = bot.send_message(chat.id, "Updating...").await.unwrap();
-                let balance = f64::trunc((person.balance - b) * 100.0) / 100.0;
+                let balance = if b == 0.0 {
+                    b
+                } else {
+                    f64::trunc((person.balance - b) * 100.0) / 100.0
+                };
                 Person::find_by_id_and_update(
                     &person.id.unwrap().to_string(),
                     &db,
