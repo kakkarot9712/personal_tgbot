@@ -1,7 +1,6 @@
 use crate::{
-    callback_query,
     commands::{self, types::*},
-    dialogue::{add_person_diag, add_transaction_diag, settle_due, state::State},
+    dialogue::{add_person_diag, add_transaction_diag, mode::ModeState, settle_due, state::State},
     user_state::{UserState, UserStateMapping},
 };
 use dotenv_codegen::dotenv;
@@ -44,10 +43,18 @@ async fn only_me(msg: Message, bot: Bot, user_state: UserStateMapping) -> bool {
 }
 
 pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpHandlerDescription> {
-    let command_handler = teloxide::filter_command::<SimpleCommands, _>().branch(
+    let command_handler = dptree::entry().branch(
         dptree::case![State::Idle]
-            .filter_command::<SimpleCommands>()
-            .endpoint(commands::simple::handle_commands),
+            .branch(
+                dptree::entry()
+                    .filter_command::<SimpleCommands>()
+                    .endpoint(commands::simple::handle_commands),
+            )
+            .branch(
+                dptree::case![ModeState::ExpenseTracker]
+                    .filter_command::<ExpenseTrackerCommands>()
+                    .endpoint(commands::expensetrackercommands::handle_commands),
+            ),
     );
 
     let hidden_command_handler = dptree::entry()
@@ -90,11 +97,11 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
             }]
             .endpoint(add_transaction_diag::handle_callback_query),
         )
-        .branch(dptree::case![State::SDPersonAsked].endpoint(settle_due::handle_person_asked))
-        .branch(dptree::endpoint(callback_query::handle_callback));
+        .branch(dptree::case![State::SDPersonAsked].endpoint(settle_due::handle_person_asked));
 
     dptree::entry()
         .enter_dialogue::<Update, InMemStorage<State>, State>()
+        .enter_dialogue::<Update, InMemStorage<ModeState>, ModeState>()
         .branch(message_handler)
         .branch(callback_query_handler)
 }

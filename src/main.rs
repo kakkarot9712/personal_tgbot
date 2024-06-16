@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*};
+use tgbot::database::initialize_db;
+use tgbot::dialogue::mode::ModeState;
 use tgbot::dialogue::state::State;
 use tgbot::schema::schema;
-use tgbot::database::initialize_db;
 use tgbot::user_state::{UserState, UserStateMapping};
 use tokio::sync::Mutex;
 
@@ -24,6 +25,7 @@ async fn main() {
         .enable_ctrlc_handler()
         .dependencies(dptree::deps![
             InMemStorage::<State>::new(),
+            InMemStorage::<ModeState>::new(),
             db,
             hashmap
         ])
