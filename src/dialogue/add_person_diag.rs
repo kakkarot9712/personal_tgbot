@@ -1,7 +1,12 @@
-use crate::{database::{schema::Person, traits::DBHandle}, dialogue::state::{DialogueWithState, State}};
+use crate::{
+    database::{schema::Person, traits::DBHandle},
+    dialogue::state::{DialogueWithState, State},
+};
 use mongodb::Database;
 use std::{num::ParseFloatError, sync::Arc};
 use teloxide::prelude::*;
+
+use super::insert_cancel_helper_text;
 
 pub async fn handle_due(
     bot: Bot,
@@ -42,13 +47,20 @@ pub async fn handle_due(
     Ok(())
 }
 
-pub async fn handle_name(bot: Bot, dialogue: DialogueWithState, msg: Message) -> ResponseResult<()> {
+pub async fn handle_name(
+    bot: Bot,
+    dialogue: DialogueWithState,
+    msg: Message,
+) -> ResponseResult<()> {
     let full_name = msg.text().unwrap().to_string();
     dialogue
         .update(State::PReceiveBalance { full_name })
         .await
         .unwrap();
-    bot.send_message(msg.chat.id, "What's Current Due of User?")
-        .await?;
+    bot.send_message(
+        msg.chat.id,
+        insert_cancel_helper_text("What's Current Due of User?".to_owned()),
+    )
+    .await?;
     Ok(())
 }

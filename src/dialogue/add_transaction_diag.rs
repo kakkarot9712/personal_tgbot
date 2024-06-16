@@ -10,22 +10,26 @@ use teloxide::{
     Bot,
 };
 
-use crate::{database::{
-    schema::{Person, Transaction},
-    traits::{CollectionHelpers, DBHandle},
-}, dialogue::state::{DialogueWithState, State}};
+use crate::{
+    database::{
+        schema::{Person, Transaction},
+        traits::{CollectionHelpers, DBHandle},
+    },
+    dialogue::state::{DialogueWithState, State},
+};
 
-pub async fn start(
-    bot: Bot,
-    msg: Message,
-    dialogue: DialogueWithState,
-) -> ResponseResult<()> {
+use super::insert_cancel_helper_text;
+
+pub async fn start(bot: Bot, msg: Message, dialogue: DialogueWithState) -> ResponseResult<()> {
     let parsed_amt: Result<i64, ParseIntError> = msg.text().unwrap().parse();
     match parsed_amt {
         Ok(amt) => {
-            bot.send_message(msg.chat.id, "Describe Transaction.")
-                .await
-                .unwrap();
+            bot.send_message(
+                msg.chat.id,
+                insert_cancel_helper_text("Describe Transaction.".to_owned()),
+            )
+            .await
+            .unwrap();
             dialogue
                 .update(State::TAmountAsked { amount: amt })
                 .await
@@ -49,10 +53,13 @@ pub async fn handle_amount_asked(
 ) -> ResponseResult<()> {
     let note = msg.text().unwrap().to_owned();
     let keyboard = Person::make_keyboard(db, true).await;
-    bot.send_message(msg.chat.id, "Select The Persons:")
-        .reply_markup(keyboard)
-        .await
-        .unwrap();
+    bot.send_message(
+        msg.chat.id,
+        insert_cancel_helper_text("Select The Persons:".to_owned()),
+    )
+    .reply_markup(keyboard)
+    .await
+    .unwrap();
     dialogue
         .update(State::TNoteAsked {
             amount,

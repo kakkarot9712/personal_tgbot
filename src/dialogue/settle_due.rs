@@ -12,6 +12,8 @@ use crate::{
     dialogue::state::{DialogueWithState, State},
 };
 
+use super::insert_cancel_helper_text;
+
 pub async fn handle_person_asked(
     q: CallbackQuery,
     bot: Bot,
@@ -31,11 +33,11 @@ pub async fn handle_person_asked(
         bot.edit_message_text(
             chat.id,
             id,
-            format!(
-                "Selected Person: {}\n\n Current Due: {}\n\nEnter Amount To Settle \n(To Settle all due send 0)",
+            insert_cancel_helper_text(format!(
+                "Selected Person: {}\n\nCurrent Due: {}\n\nEnter Amount To Settle:\n(To Settle all due send 0).",
                 name,
                 (balance * 100.0).round() / 100.0
-            ),
+            )),
         )
         .await
         .unwrap();
@@ -55,7 +57,7 @@ pub async fn handle_amount_asked(
     let Message { chat, .. } = msg;
     match settle_balance {
         Ok(b) => {
-            if b > person.balance || b <= 0.0 {
+            if b > person.balance || b < 0.0 {
                 bot.send_message(
                     chat.id,
                     "Settlement Value cannot be more then Due itself or less then 0",

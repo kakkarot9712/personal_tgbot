@@ -5,7 +5,10 @@ use teloxide::prelude::*;
 
 use crate::{
     database::{schema::Person, traits::CollectionHelpers},
-    dialogue::state::{DialogueWithState, State},
+    dialogue::{
+        insert_cancel_helper_text,
+        state::{DialogueWithState, State},
+    },
 };
 
 use super::types::ExpenseTrackerCommands;
@@ -20,15 +23,21 @@ pub async fn handle_commands(
     match cmd {
         ExpenseTrackerCommands::AddPerson => {
             dialogue.update(State::PReceiveName).await.unwrap();
-            bot.send_message(msg.chat.id, format!("Okay! What is the Full Name of User?"))
-                .await
-                .unwrap();
+            bot.send_message(
+                msg.chat.id,
+                insert_cancel_helper_text("Okay! What is the Full Name of User?".to_owned()),
+            )
+            .await
+            .unwrap();
         }
         ExpenseTrackerCommands::AddTransaction => {
             dialogue.update(State::TStarted).await.unwrap();
-            bot.send_message(msg.chat.id, "Okay! Enter the Amount.")
-                .await
-                .unwrap();
+            bot.send_message(
+                msg.chat.id,
+                insert_cancel_helper_text("Okay! Enter the Amount.".to_owned()),
+            )
+            .await
+            .unwrap();
         }
         ExpenseTrackerCommands::ListAllDues => {
             let mut formatted_msg = String::from("");
@@ -53,10 +62,13 @@ pub async fn handle_commands(
         ExpenseTrackerCommands::SettleDue => {
             let keyboard = Person::make_keyboard(db, false).await;
             dialogue.update(State::SDPersonAsked).await.unwrap();
-            bot.send_message(msg.chat.id, "Okay Select The Person:")
-                .reply_markup(keyboard)
-                .await
-                .unwrap();
+            bot.send_message(
+                msg.chat.id,
+                insert_cancel_helper_text("Okay Select The Person:".to_owned()),
+            )
+            .reply_markup(keyboard)
+            .await
+            .unwrap();
         }
     }
     Ok(())
