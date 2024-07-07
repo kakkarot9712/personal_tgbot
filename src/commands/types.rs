@@ -14,6 +14,8 @@ pub enum SimpleCommands {
     Help,
     #[command(description = "Change Bot Mode")]
     ChangeMode,
+    #[command(description = "Source Code of Bot")]
+    Source,
 }
 
 #[derive(BotCommands, Debug, Clone)]

@@ -26,7 +26,7 @@
   <img src='/assets/add_transaction.gif'></img>
   <br>
   <br>
-  - Settle Transaction
+  - Settle Due
   <br>
   <img src='/assets/settle_due.gif'></img>
   <br>

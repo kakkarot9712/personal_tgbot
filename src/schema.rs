@@ -15,12 +15,16 @@ use teloxide::{
 async fn only_me(msg: Message, bot: Bot, user_state: UserStateMapping) -> bool {
     let my_id = dotenv!("MYID");
     let sender = msg.from();
+    let mut current_userid: Option<String> = None;
     let is_me = match sender {
-        Some(u) => u.id.to_string() == my_id.to_string(),
+        Some(u) => {
+            current_userid = Some(u.id.to_string());
+            u.id.to_string() == my_id.to_string()
+        }
         None => false,
     };
     if !is_me {
-        bot.send_message(msg.chat.id, "Only owner can use this bot as of now. If you want to use bot, kindly goto Github profile and follow deployment steps").await.unwrap();
+        bot.send_message(msg.chat.id, format!("Only owner can use mode specific features of this bot as of now. If you want to use bot, kindly goto Github source code of this bot and follow README.md to deploy your own verson of this bot. use /source command to get source code of this bot. Your user ID is {}",current_userid.unwrap_or("NOT_FOUND".to_owned()))).await.unwrap();
     } else {
         let chat_id = msg.chat.id.to_string();
         let mut user_state_lock = user_state.lock().await;
@@ -50,6 +54,7 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
                     .filter_command::<SimpleCommands>()
                     .endpoint(commands::simple::handle_commands),
             )
+            .filter_async(only_me)
             .branch(
                 dptree::case![ModeState::ExpenseTracker]
                     .filter_command::<ExpenseTrackerCommands>()
@@ -83,10 +88,9 @@ pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpH
         );
 
     let message_handler = Update::filter_message()
-        .filter_async(only_me)
-        .branch(command_handler)
         .branch(dialogue_handler)
-        .branch(hidden_command_handler);
+        .branch(hidden_command_handler)
+        .branch(command_handler);
 
     let callback_query_handler = Update::filter_callback_query()
         .branch(

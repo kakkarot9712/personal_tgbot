@@ -13,7 +13,7 @@ impl HiddenCommands {
     ) -> ResponseResult<()> {
         match cmd {
             Self::Start => {
-                bot.send_message(msg.chat.id, "Hello! This is Telegram Bot made by @Kakkarto9712. Currently WIP. To know more about this bot send /help message.").await.unwrap();
+                bot.send_message(msg.chat.id, "Hello! This is Telegram Bot made by @Kakkarto9712. To know more about this bot send /help message.").await.unwrap();
             }
 
             Self::Cancel => {

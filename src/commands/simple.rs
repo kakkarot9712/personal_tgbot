@@ -37,6 +37,12 @@ pub async fn handle_commands(
                 }
             }
         }
+        SimpleCommands::Source => {
+            bot.send_message(
+            msg.chat.id,
+            "Here is the source code of this bot.\nhttps://github.com/kakkarot9712/personal_tgbot",
+        ).await.unwrap();
+        }
     };
     Ok(())
 }
