@@ -16,6 +16,8 @@ pub enum SimpleCommands {
     ChangeMode,
     #[command(description = "Source Code of Bot")]
     Source,
+    #[command(description = "Toggle Public Access of Mode specific features")]
+    SwitchAccessMode,
 }
 
 #[derive(BotCommands, Debug, Clone)]
@@ -39,4 +41,6 @@ pub enum ExpenseTrackerCommands {
     AddTransaction,
     #[command(description = "Settle Due")]
     SettleDue,
+    #[command(description = "Check Access Mode")]
+    CheckAccessMode,
 }

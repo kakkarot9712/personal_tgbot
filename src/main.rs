@@ -19,6 +19,8 @@ async fn main() {
 
     let db = Arc::new(initialize_db().await.expect("DB Connection Failed!"));
     let hashmap: UserStateMapping = Arc::new(Mutex::new(HashMap::<String, UserState>::new()));
+    let globals: Arc<Mutex<HashMap<String, String>>> =
+        Arc::new(Mutex::new(HashMap::<String, String>::new()));
     let bot = Bot::new(dotenv!("BOT_TOKEN"));
 
     Dispatcher::builder(bot, schema())
@@ -27,7 +29,8 @@ async fn main() {
             InMemStorage::<State>::new(),
             InMemStorage::<ModeState>::new(),
             db,
-            hashmap
+            hashmap,
+            globals
         ])
         .build()
         .dispatch()

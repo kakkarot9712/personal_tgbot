@@ -1,6 +1,7 @@
+use dotenv_codegen::dotenv;
 use teloxide::{prelude::*, utils::command::BotCommands};
 
-use crate::dialogue::mode;
+use crate::{dialogue::mode, globals::Globals};
 
 use super::types::{ExpenseTrackerCommands, SimpleCommands};
 
@@ -9,6 +10,7 @@ pub async fn handle_commands(
     msg: Message,
     cmd: SimpleCommands,
     chat_mode: mode::DialogueWithModeState,
+    globals: Globals,
 ) -> ResponseResult<()> {
     match cmd {
         SimpleCommands::Ping => {
@@ -42,6 +44,51 @@ pub async fn handle_commands(
             msg.chat.id,
             "Here is the source code of this bot.\nhttps://github.com/kakkarot9712/personal_tgbot",
         ).await.unwrap();
+        }
+        SimpleCommands::SwitchAccessMode => {
+            let my_id = dotenv!("MYID");
+            let sender = msg.from();
+            if let Some(user) = sender {
+                if my_id == user.id.to_string() {
+                    let mut globals = globals.lock().await;
+                    let current_mode = globals.get("allowAll");
+                    if let Some(access_mode) = current_mode {
+                        if access_mode == "true" {
+                            globals.insert("allowAll".to_owned(), "false".to_owned());
+                            bot.send_message(
+                                msg.chat.id,
+                                "Now mode specific features are restricted!",
+                            )
+                            .await
+                            .unwrap();
+                        } else {
+                            bot.send_message(
+                                msg.chat.id,
+                                "Now Anyone can access mode specific features!",
+                            )
+                            .await
+                            .unwrap();
+                            globals.insert("allowAll".to_owned(), "true".to_owned());
+                        }
+                    } else {
+                        bot.send_message(
+                            msg.chat.id,
+                            "Now Anyone can access mode specific features!",
+                        )
+                        .await
+                        .unwrap();
+                        globals.insert("allowAll".to_owned(), "true".to_owned());
+                    }
+                } else {
+                    bot.send_message(msg.chat.id, "Operation Forbidden!")
+                        .await
+                        .unwrap();
+                }
+            } else {
+                bot.send_message(msg.chat.id, "Operation Forbidden!")
+                    .await
+                    .unwrap();
+            }
         }
     };
     Ok(())

@@ -1,50 +1,14 @@
 use crate::{
+    auth::only_me,
     commands::{self, types::*},
     dialogue::{add_person_diag, add_transaction_diag, mode::ModeState, settle_due, state::State},
-    user_state::{UserState, UserStateMapping},
 };
-use dotenv_codegen::dotenv;
 use teloxide::{
     dispatching::{dialogue::InMemStorage, DpHandlerDescription, HandlerExt, UpdateFilterExt},
     dptree::{self, di::DependencyMap, Handler},
-    prelude::*,
-    types::{Message, Update},
-    Bot, RequestError,
+    types::Update,
+    RequestError,
 };
-
-async fn only_me(msg: Message, bot: Bot, user_state: UserStateMapping) -> bool {
-    let my_id = dotenv!("MYID");
-    let sender = msg.from();
-    let mut current_userid: Option<String> = None;
-    let is_me = match sender {
-        Some(u) => {
-            current_userid = Some(u.id.to_string());
-            u.id.to_string() == my_id.to_string()
-        }
-        None => false,
-    };
-    if !is_me {
-        bot.send_message(msg.chat.id, format!("Only owner can use mode specific features of this bot as of now. If you want to use bot, kindly goto Github source code of this bot and follow README.md to deploy your own verson of this bot. use /source command to get source code of this bot. Your user ID is {}",current_userid.unwrap_or("NOT_FOUND".to_owned()))).await.unwrap();
-    } else {
-        let chat_id = msg.chat.id.to_string();
-        let mut user_state_lock = user_state.lock().await;
-        let current_user = user_state_lock.get(&chat_id);
-        let _ = match current_user {
-            None => {
-                let new_state = UserState {
-                    dialogue_state: State::Idle,
-                    user_id: my_id.to_string(),
-                };
-                user_state_lock.insert(chat_id, new_state);
-            }
-            Some(_) => {
-                // User already exists in hashmap
-                // println!("{:?}", u);
-            }
-        };
-    }
-    is_me
-}
 
 pub fn schema() -> Handler<'static, DependencyMap, Result<(), RequestError>, DpHandlerDescription> {
     let command_handler = dptree::entry().branch(

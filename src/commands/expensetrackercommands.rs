@@ -9,6 +9,7 @@ use crate::{
         insert_cancel_helper_text,
         state::{DialogueWithState, State},
     },
+    globals::Globals,
 };
 
 use super::types::ExpenseTrackerCommands;
@@ -19,6 +20,7 @@ pub async fn handle_commands(
     cmd: ExpenseTrackerCommands,
     db: Arc<Database>,
     dialogue: DialogueWithState,
+    globals: Globals,
 ) -> ResponseResult<()> {
     match cmd {
         ExpenseTrackerCommands::AddPerson => {
@@ -69,6 +71,34 @@ pub async fn handle_commands(
             .reply_markup(keyboard)
             .await
             .unwrap();
+        }
+        ExpenseTrackerCommands::CheckAccessMode => {
+            let globals_lock = globals.lock().await;
+            let current_mode = globals_lock.get("allowAll");
+            let mut is_allowed = false;
+            match current_mode {
+                Some(mode) => {
+                    if mode == "true" {
+                        is_allowed = true;
+                    }
+                }
+                _ => {}
+            }
+            if is_allowed {
+                bot.send_message(
+                    msg.chat.id,
+                    "Allow All: Anyone can Access Mode Specific Features.",
+                )
+                .await
+                .unwrap();
+            } else {
+                bot.send_message(
+                    msg.chat.id,
+                    "Restricted: Only Owner can Access Mode Specific Features.",
+                )
+                .await
+                .unwrap();
+            }
         }
     }
     Ok(())
