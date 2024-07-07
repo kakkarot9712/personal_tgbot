@@ -11,20 +11,25 @@
 <details>
   <summary>Click to see video demos</summary>
   <br>
-  Start Bot
+  - Start Bot
   <br>
   <img src='/assets/start_bot.gif'></img>
-  Add Person
+  <br>
+  <br>
+  - Add Person
   <br>
   <img src='/assets/add_person.gif'></img>
   <br>
-  Add Transaction
+  <br>
+  - Add Transaction
   <br>
   <img src='/assets/add_transaction.gif'></img>
   <br>
-  Settle Transaction
+  <br>
+  - Settle Transaction
   <br>
   <img src='/assets/settle_due.gif'></img>
+  <br>
   <br>
 </details>
 
